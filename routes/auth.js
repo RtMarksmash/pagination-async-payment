@@ -11,7 +11,7 @@ router.get('/signup', authController.getSignup);
 
 router.post('/login', authController.postLogin);
 
-router.post('/signup', body('email').isEmail(), authController.postSignup);
+router.post('/signup', body('email').isEmail().withMessage('please insert validate information'), authController.postSignup);
 
 router.post('/logout', authController.postLogout);
 
