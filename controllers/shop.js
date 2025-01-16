@@ -4,6 +4,8 @@ const path = require('path');
 const Product = require('../models/product');
 const Order = require('../models/order');
 
+const PdfDocument = require('pdfkit');
+
 exports.getProducts = (req, res, next) => {
     Product.find()
         .then(products => {
@@ -146,17 +148,44 @@ exports.getOrders = (req, res, next) => {
 
 exports.getInvoice = (req, res, next) => {
     const orderId = req.params.orderId;
-    console.log(orderId);
-    const invoiceName = 'invoice-' + orderId + '.pdf';
-    const invoicePath = path.join(__dirname, '..', 'data', 'invoices', invoiceName);
-    console.log(invoicePath);
-    fs.readFile(invoicePath, (err, data) => {
-        if (err) {
-            console.log(err)
-            return next(err)
+    Order.findById(orderId).then(order => {
+        if (!order) {
+            return next(new Error('order is not found'));
         }
+        if (order.user.userId.toString() !== req.user._id.toString()) {
+            return next(new Error('user is not authorizade'));
+        }
+        const invoiceName = 'invoice-' + orderId + '.pdf';
+        const invoicePath = path.join(__dirname, '..', 'data', 'invoices', invoiceName);
+
+        const pdfKit = new PdfDocument();
         res.setHeader('Content-Type', 'application/pdf');
-        res.setHeader('Content-Disposition', 'attachment; filename=""' + invoiceName + "")
-        res.send(data);
-    });
+        res.setHeader('Content-Disposition', 'inline; filename=""' + invoiceName + "");
+        pdfKit.pipe(fs.createWriteStream(invoiceName));
+        pdfKit.pipe(res);
+
+        pdfKit.text('hola esto es una prueba or this is my first test on this package')
+
+
+        pdfKit.end();
+
+
+        /*  fs.readFile(invoicePath, (err, data) => {
+             if (err) {
+                 console.log(err)
+                 return next(err)
+             }
+             res.setHeader('Content-Type', 'application/pdf');
+             res.setHeader('Content-Disposition', 'attachment; filename=""' + invoiceName + "")
+             res.send(data);
+         }); */
+        /*  const file = fs.createReadStream(invoicePath);
+     
+        file.pipe(res) */
+    }).catch(err => {
+        const error = new Error(err);
+        error.httpStatusCode = 500;
+        return next(error)
+    })
+
 };
