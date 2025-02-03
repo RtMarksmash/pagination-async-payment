@@ -7,7 +7,7 @@ const fileHelper = require('../util/file');
 
 const PdfDocument = require('pdfkit');
 
-const ITEMS_PER_PAGE = 1;
+const ITEMS_PER_PAGE = 2;
 
 exports.getProducts = (req, res, next) => {
     const page = +req.query.page || 1;
@@ -133,6 +133,26 @@ exports.postCartDeleteProduct = (req, res, next) => {
             return next(error)
         });
 };
+
+exports.getCheckout = (req, res, next) => {
+    req.user
+        .populate('cart.items.productId')
+        .then(user => {
+            const products = user.cart.items;
+            let total = 0;
+            products.forEach(p => {
+                total += p.quantity * p.productId.price;
+            })
+            res.render('shop/checkout', {
+                path: '/checkout',
+                pageTitle: 'payment',
+                products: products,
+                totalSum: total
+            });
+        })
+        .catch(err => console.log(err));
+};
+
 
 exports.postOrder = (req, res, next) => {
     req.user
